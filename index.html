@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz dos Temperamentos</title>
+<style>
+  :root {
+    --bg: #0e0c1a;
+    --card: #16132a;
+    --border: #2e2a4a;
+    --accent: #c084fc;
+    --accent2: #818cf8;
+    --gold: #fbbf24;
+    --text: #e2e0f0;
+    --muted: #7c7a9a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: sans-serif; min-height: 100vh; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: radial-gradient(ellipse 80% 50% at 20% 20%, rgba(192,132,252,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(129,140,248,0.06) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+  .container { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  .anim { animation: fadeUp 0.4s ease both; }
+
+  /* INTRO */
+  .intro-wrap { text-align: center; padding-top: 60px; }
+  .badge { display:inline-block; background:rgba(192,132,252,0.1); border:1px solid var(--border); border-radius:100px; padding:6px 18px; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--accent); margin-bottom:24px; }
+  .intro-wrap h1 { font-family: Georgia, serif; font-size: clamp(30px,6vw,56px); font-weight:900; color:#fff; margin-bottom:16px; line-height:1.1; }
+  .intro-wrap h1 span { color: var(--accent); }
+  .intro-wrap p { color: var(--muted); font-size:15px; max-width:440px; margin:0 auto 36px; line-height:1.7; }
+  .chips { display:grid; grid-template-columns:1fr 1fr; gap:10px; max-width:380px; margin:0 auto 36px; }
+  .chip { padding:11px 14px; border-radius:12px; font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px; border:1px solid; }
+  .chip.sang { border-color:rgba(244,114,182,0.35); background:rgba(244,114,182,0.06); color:#f9a8d4; }
+  .chip.col  { border-color:rgba(248,113,113,0.35); background:rgba(248,113,113,0.06); color:#fca5a5; }
+  .chip.mel  { border-color:rgba(96,165,250,0.35);  background:rgba(96,165,250,0.06);  color:#93c5fd; }
+  .chip.fle  { border-color:rgba(52,211,153,0.35);  background:rgba(52,211,153,0.06);  color:#6ee7b7; }
+  .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .sang .dot { background:#f472b6; } .col .dot { background:#f87171; } .mel .dot { background:#60a5fa; } .fle .dot { background:#34d399; }
+  .btn-start { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border:none; padding:15px 42px; border-radius:100px; font-size:16px; font-weight:700; cursor:pointer; transition:transform .2s,box-shadow .2s; }
+  .btn-start:hover { transform:translateY(-2px); box-shadow:0 12px 36px rgba(192,132,252,.35); }
+
+  /* QUIZ */
+  .prog-wrap { margin-bottom:24px; }
+  .prog-info { display:flex; justify-content:space-between; font-size:13px; color:var(--muted); margin-bottom:8px; }
+  .prog-bar { height:4px; background:var(--border); border-radius:10px; overflow:hidden; }
+  .prog-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:10px; transition:width .4s ease; }
+  .sec-title { font-family:Georgia,serif; font-size:24px; font-weight:700; margin-bottom:6px; }
+  .sec-desc { font-size:14px; color:var(--muted); margin-bottom:20px; }
+  .items-grid { display:grid; gap:8px; }
+  .item { display:flex; align-items:flex-start; gap:12px; padding:12px 16px; border:1px solid var(--border); border-radius:12px; background:var(--card); cursor:pointer; transition:border-color .15s,background .15s; user-select:none; }
+  .item:hover { border-color:var(--accent); }
+  .item.on { border-color:var(--accent); background:rgba(192,132,252,.08); }
+  .chk { width:20px; height:20px; border:2px solid var(--border); border-radius:5px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; margin-top:1px; transition:all .15s; }
+  .item.on .chk { background:var(--accent); border-color:var(--accent); }
+  .inum { font-size:11px; color:var(--muted); flex-shrink:0; width:20px; padding-top:2px; }
+  .itxt { font-size:14px; line-height:1.45; }
+  .nav { display:flex; justify-content:space-between; align-items:center; margin-top:24px; }
+  .btn-nav { padding:11px 24px; border-radius:100px; border:1px solid var(--border); background:transparent; color:var(--text); font-size:14px; cursor:pointer; transition:all .2s; }
+  .btn-nav:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-nav.fwd { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
+  .btn-nav.fwd:hover { background:var(--accent2); border-color:var(--accent2); }
+  .cnt { font-size:13px; color:var(--muted); background:var(--card); border:1px solid var(--border); padding:6px 14px; border-radius:100px; }
+
+  /* PIX */
+  .pix-wrap { max-width:460px; margin:0 auto; }
+  .pix-card { background:var(--card); border:1px solid var(--border); border-radius:22px; padding:44px 36px; text-align:center; }
+  .pix-emoji { font-size:44px; margin-bottom:14px; }
+  .pix-title { font-family:Georgia,serif; font-size:26px; font-weight:700; margin-bottom:12px; }
+  .pix-desc { color:var(--muted); font-size:14px; line-height:1.7; margin-bottom:24px; }
+  .price { font-family:Georgia,serif; font-size:52px; font-weight:900; color:var(--gold); display:block; }
+  .price-sub { font-size:12px; color:var(--muted); margin-bottom:24px; }
+
+  /* Código Pix copiável */
+  .pix-code-box { background:rgba(251,191,36,.06); border:1px dashed rgba(251,191,36,.35); border-radius:14px; padding:18px; margin-bottom:8px; }
+  .pix-code-lbl { font-size:11px; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:8px; }
+  .pix-code-value { font-size:13px; font-weight:600; color:var(--gold); word-break:break-all; line-height:1.6; }
+  .btn-copy { background:rgba(251,191,36,.12); border:1px solid rgba(251,191,36,.3); color:var(--gold); border-radius:8px; padding:7px 18px; font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; margin-bottom:20px; }
+  .btn-copy:hover { background:rgba(251,191,36,.22); }
+
+  /* Input do ID do pagamento */
+  .payment-id-section { margin-bottom:20px; text-align:left; }
+  .payment-id-label { font-size:13px; color:var(--muted); margin-bottom:8px; display:block; line-height:1.6; }
+  .payment-id-label strong { color:var(--text); }
+  .payment-id-input { width:100%; padding:12px 16px; border-radius:10px; border:1px solid var(--border); background:rgba(255,255,255,.04); color:var(--text); font-size:14px; outline:none; transition:border-color .2s; }
+  .payment-id-input:focus { border-color:var(--accent); }
+  .payment-id-input::placeholder { color:var(--muted); }
+
+  .pix-steps { text-align:left; background:rgba(129,140,248,.05); border:1px solid rgba(129,140,248,.15); border-radius:14px; padding:18px 20px; margin-bottom:22px; font-size:13px; color:var(--muted); line-height:2.1; }
+  .pix-steps strong { color:var(--text); }
+
+  .btn-verificar { width:100%; padding:15px; border-radius:14px; background:linear-gradient(135deg,var(--gold),#f59e0b); border:none; color:#0e0c1a; font-size:16px; font-weight:700; cursor:pointer; transition:all .2s; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .btn-verificar:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 12px 36px rgba(251,191,36,.3); }
+  .btn-verificar:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+
+  /* Status do pagamento */
+  .status-box { border-radius:12px; padding:14px 18px; margin-bottom:16px; font-size:14px; font-weight:600; display:none; align-items:center; gap:10px; }
+  .status-box.checking { display:flex; background:rgba(129,140,248,.08); border:1px solid rgba(129,140,248,.2); color:#a5b4fc; }
+  .status-box.error    { display:flex; background:rgba(248,113,113,.08); border:1px solid rgba(248,113,113,.2); color:#fca5a5; }
+  .status-box.pending  { display:flex; background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.2); color:#fde68a; }
+  .status-box.success  { display:flex; background:rgba(52,211,153,.08); border:1px solid rgba(52,211,153,.2); color:#6ee7b7; }
+
+  /* Spinner */
+  .spinner { width:16px; height:16px; border:2px solid rgba(255,255,255,.2); border-top-color:currentColor; border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .pix-disc { font-size:12px; color:var(--muted); }
+
+  /* RESULT */
+  .res-header { text-align:center; margin-bottom:36px; }
+  .res-title { font-family:Georgia,serif; font-size:36px; font-weight:900; margin-bottom:8px; }
+  .res-sub { color:var(--muted); font-size:15px; }
+  .rcard { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:28px; margin-bottom:20px; }
+  .rcard-title { font-family:Georgia,serif; font-size:18px; font-weight:700; margin-bottom:20px; text-align:center; }
+  .bar-wrap { margin-bottom:18px; }
+  .bar-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .bar-lbl { font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .bar-pct { font-size:14px; font-weight:700; }
+  .bar-track { height:10px; background:var(--border); border-radius:10px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:10px; transition:width 1.2s cubic-bezier(.16,1,.3,1); width:0; }
+  canvas { display:block; margin:0 auto; }
+  .dom-card { border-radius:18px; padding:28px; margin-bottom:20px; border:1px solid transparent; }
+  .dom-lbl { font-size:11px; text-transform:uppercase; letter-spacing:2px; opacity:.7; margin-bottom:6px; }
+  .dom-name { font-family:Georgia,serif; font-size:32px; font-weight:900; margin-bottom:10px; }
+  .dom-desc { font-size:14px; opacity:.85; line-height:1.8; }
+  .needs-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .need-card { border-radius:12px; padding:16px; border:1px solid transparent; }
+  .need-name { font-size:13px; font-weight:700; margin-bottom:5px; }
+  .need-txt { font-size:13px; opacity:.75; line-height:1.6; }
+  .tags { display:flex; flex-wrap:wrap; gap:9px; margin-top:14px; }
+  .tag { padding:7px 15px; border-radius:100px; font-size:13px; font-weight:600; border:1px solid; background:rgba(255,255,255,.03); }
+  @media(max-width:480px){ .needs-grid{grid-template-columns:1fr;} .pix-card{padding:28px 18px;} }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- INTRO -->
+  <div id="s-intro" class="screen active">
+    <div class="intro-wrap anim">
+      <div class="badge">✦ Autoconhecimento</div>
+      <h1>Descubra Seu<br><span>Temperamento</span></h1>
+      <p>Um teste baseado nos 4 temperamentos clássicos para revelar como você realmente é — com análise completa e gráfico personalizado.</p>
+      <div class="chips">
+        <div class="chip sang"><div class="dot"></div>Sanguíneo</div>
+        <div class="chip col"><div class="dot"></div>Colérico</div>
+        <div class="chip mel"><div class="dot"></div>Melancólico</div>
+        <div class="chip fle"><div class="dot"></div>Fleumático</div>
+      </div>
+      <button class="btn-start" onclick="startQuiz()">Iniciar o Teste →</button>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="s-quiz" class="screen">
+    <div class="anim">
+      <div class="prog-wrap">
+        <div class="prog-info"><span id="prog-lbl">Seção 1 de 4</span><span id="prog-cnt">0 itens marcados</span></div>
+        <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+      </div>
+      <div class="sec-title" id="sec-title"></div>
+      <div class="sec-desc" id="sec-desc"></div>
+      <div class="items-grid" id="items"></div>
+      <div class="nav">
+        <button class="btn-nav" id="btn-prev" onclick="prev()">← Anterior</button>
+        <div class="cnt" id="cnt-badge">0 marcados</div>
+        <button class="btn-nav fwd" id="btn-next" onclick="next()">Próxima →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIX -->
+  <div id="s-pix" class="screen">
+    <div class="pix-wrap anim">
+      <div class="pix-card">
+        <div class="pix-emoji">✨</div>
+        <div class="pix-title">Seu resultado está pronto!</div>
+        <p class="pix-desc">Analisamos todas as suas respostas. Para revelar seu perfil completo com gráfico personalizado, faça um Pix de R$ 9,00.</p>
+        <span class="price">R$ 9</span>
+        <div class="price-sub">pagamento único · acesso imediato</div>
+
+        <!-- Código Pix Copia e Cola -->
+        <div class="pix-code-box">
+          <div class="pix-code-lbl">Código Pix — Copia e Cola</div>
+          <div class="pix-code-value" id="pix-code-display">bfee0499-9fa0-4d25-9955-057a55c45b5a</div>
+        </div>
+        <button class="btn-copy" onclick="copiarPix()">📋 Copiar código Pix</button>
+
+        <!-- Instruções -->
+        <div class="pix-steps">
+          <strong>1.</strong> Copie o código Pix acima<br>
+          <strong>2.</strong> Abra o app do seu banco → Pix → Pagar<br>
+          <strong>3.</strong> Escolha "Pix Copia e Cola" e cole o código<br>
+          <strong>4.</strong> Confirme o pagamento de <strong>R$ 9,00</strong><br>
+          <strong>5.</strong> Após pagar, cole o <strong>ID do pagamento</strong> abaixo e clique em verificar
+        </div>
+
+        <!-- Campo ID do pagamento -->
+        <div class="payment-id-section">
+          <label class="payment-id-label">
+            <strong>ID do pagamento:</strong> após pagar, você recebe o comprovante com um número de identificação (ex: <em>1234567890</em>). Cole aqui:
+          </label>
+          <input type="text" id="payment-id-input" class="payment-id-input" placeholder="Ex: 1234567890" />
+        </div>
+
+        <!-- Status -->
+        <div class="status-box" id="status-box">
+          <div class="spinner" id="status-spinner"></div>
+          <span id="status-text"></span>
+        </div>
+
+        <!-- Botão verificar -->
+        <button class="btn-verificar" id="btn-verificar" onclick="verificarPagamento()">
+          ✅ Já paguei — Verificar pagamento
+        </button>
+        <div class="pix-disc">A verificação é feita automaticamente via Mercado Pago</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="s-result" class="screen">
+    <div class="anim">
+      <div class="res-header">
+        <div class="res-title">🌟 Seu Perfil</div>
+        <div class="res-sub">Análise completa baseada nas suas respostas</div>
+      </div>
+      <div class="rcard"><div class="rcard-title">Distribuição dos Temperamentos</div><div id="bars"></div></div>
+      <div class="rcard"><div class="rcard-title">Gráfico Radar</div><canvas id="radar" width="280" height="280"></canvas></div>
+      <div id="dom-wrap"></div>
+      <div class="rcard" id="needs-wrap" style="display:none"><div class="rcard-title">Necessidades Espirituais</div><div class="needs-grid" id="needs-grid"></div></div>
+      <div class="rcard" id="prof-wrap" style="display:none"><div class="rcard-title">Áreas e Profissões Indicadas</div><div class="tags" id="prof-tags"></div></div>
+    </div>
+  </div>
+
+</div>
+<script>
+// ─── DADOS DO QUIZ ────────────────────────────────────────────────────────────
+var secs=[
+  {id:'A',label:'Sanguíneo',color:'#f472b6',title:'Seção A — Sanguíneo',desc:'Marque todos os itens com os quais você se identifica:',items:['Cordial','Alegre','Contagiante','Bem-humorado','Extrovertido','Estimulante','Bondoso','Emotivo','Espontâneo','Ingênuo','Faz amizade com facilidade','Tem relacionamento profundo com as pessoas','Mais coração do que razão','Relaciona-se bem','Gosta de crianças','Esquece as coisas desagradáveis facilmente','Sincero','Anima as pessoas','Participa com entusiasmo de novos planos','Barulhento','Espalhafatoso','Curiosidade infantil','Sensível com as necessidades do próximo','Desperta de bom humor','Otimista','Vive para o presente','Não se sente temeroso pelo futuro','Não gosta de estar só','Fala antes de pensar','Terno e compassivo','Pouco prático e desorganizado','Age sem pensar','Tendência à lascivia','Dificuldade para concentrar-se em leitura ou tarefas que exijam atenção','Pouca produtividade','Indisciplinado','Começa e não termina seus planos','Responde e se compromete sem pensar. Não cumpre.','Turbulento','Não conhece suas limitações','Não cumpre horário ou compromisso','Pode alterar seus princípios morais, devido ao ambiente que o cerca','Não é leal','Egoísta','Dominador da conversa. Não dá vez aos outros.','Instável emocionalmente','Desanima facilmente','Tem explosões de ira e em seguida esquece, afetando outros.','Arrepende-se várias vezes pela mesma coisa','Vontade fraca o faz ceder à tentação']},
+  {id:'B',label:'Colérico',color:'#f87171',title:'Seção B — Colérico',desc:'Marque todos os itens com os quais você se identifica:',items:['Temperamento ardente','Ativo','Prático','Voluntarioso','Suficiente','Independente','Decidido','Facilidade de tomar decisões','Vibra com muitas atividades','Pouco influenciado pelo meio','Influenciador do meio','Não se amedronta nas adversidades — torna as adversidades um desafio','Não é dado a detalhes','Cérebro perspicaz','Não vacila sob pressão','Seu sucesso resulta de determinação e persistência mais do que de planejamento','Objetivo','Apresenta sugestões, ideias','Líder nato','Insistente','Intuitivo','Não liga muito para artes','Mais razão do que coração','Extrovertido','Firme','Não se abala facilmente com críticas','Auto-disciplinado','Geralmente otimista','Gosta do desafio do desconhecido','Interessa-se pelo aspecto prático da vida','Insensível','Irado','Com impetuosidade danosa','Sem compaixão cristã','Indiferente aos anseios das outras pessoas','Agressivo','Guarda rancor','Vingativo','Tende a ter úlcera','Cruel','Mete-se em apuros pela sua impetuosidade','Infringe a lei ou direitos dos outros para atingir seus objetivos','Dificilmente pede desculpas','Profere declarações cruéis, sarcásticas','Age tiranicamente sobre os sentimentos dos outros','Orgulhoso','Arrogante','Tem dificuldade para se concentrar quando ora ou lê a Bíblia','Frustra os outros porque nunca os satisfazem','Prepotente']},
+  {id:'C',label:'Melancólico',color:'#60a5fa',title:'Seção C — Melancólico',desc:'Marque todos os itens com os quais você se identifica:',items:['Analítico','Abnegado','Perfeccionista','Apreciador de artes','Introvertido','É todo coração','Não desaponta os que dependem dele','Não faz amigos com facilidade','Amigo fiel','Bom diagnosticador de problemas','Pessoa de confiança','Não procura as pessoas. Deixa que elas o procurem.','Consegue prever os obstáculos de um projeto','Tem confiança em sua capacidade','Sensibilidade e talento artístico','Varia sua disposição de espírito conforme situação','É correto na profissão','Sacrifica-se pessoalmente','Esquiva-se de conflitos','Não ocioso','Criativo','Sensível emocionalmente','Pensador','Revive acontecimentos e decisões passadas','Cumpridor de suas responsabilidades','Evita ficar em evidência','Reservado quanto a expor suas ideias','Fala pouco, mas é muito preciso no que diz','Não se compromete a fazer mais do que pode','Introspectivo','Egocêntrico','Inclinado à auto-análise complacente','Interesse excessivo pela sua condição física','Fica alimentando desejos de vingança','Hipocondríaco','Ofende-se muito facilmente','Desconfiado','Dado a suposições desfavoráveis','Dificilmente perdoa','Dotado de autocomiseração','Pessimista','Inseguro','Temeroso','Crítico inflexível','Depressivo','Foge da realidade e entra em devaneio','Mal-humorado','Deixa-se levar a mórbidas condições mentais','Acha que sempre estão conspirando contra ele','Tudo que o afeta é algo capital']},
+  {id:'D',label:'Fleumático',color:'#34d399',title:'Seção D — Fleumático',desc:'Marque todos os itens com os quais você se identifica:',items:['Calmo','Frio','Bem equilibrado','É todo razão','Mantém as emoções sob controle','Racional','Raramente explode em raiva ou riso','Aprecia artes','Fino gosto pelas coisas','Controlado','Gosta do convívio social','Despreocupado com as circunstâncias ao redor','Sente mais emoções do que demonstra','Prático e eficiente','Senso de humor mordaz','Provoca gargalhada sem esboçar um sorriso','Cérebro organizado','Trabalha bem sob tensão','Pouco se envolve com as atividades do próximo','Vida regrada','Tende à rotina','Mais espectador que modificador de circunstâncias','Metódico. Suas coisas estão sempre arrumadas.','É de bom coração, mas não deixa transparecer.','Capaz','Cumpridor de suas obrigações e horários','Conciliador','Pacificador nato','Sabe ouvir com paciência e atenção','Bom conselheiro','Moroso','Indolente','Sem motivação','Provocador','Distante e gélido','Obstinado','Egoísta','Indeciso','Resistente','Avarento','Descompromissado','Quando se sente forçado torna-se mais vagaroso','Expectador da vida sem se envolver','Acomodado','Usa seu humor contra outros','Conservador por comodismo','Disfarça sua obstinação com seu humor','Não se envolve','Vacila entre o desejo de fazer e de não fazer alguma coisa','Procrastinador']}
+];
+var needs={A:'Abstinência, autocontrole, paciência, fé, paz e bondade.',B:'Amor, paz, bondade, paciência, humildade e benevolência.',C:'Amor, alegria, paz, bondade, fé e autocontrole.',D:'Amor, bondade, docilidade, temperança e fé.'};
+var profs={A:['Ator','Vendedor','Orador','Comunicador','Apresentador','Coach'],B:['Produtor','Construtor','Líder','Empreendedor','Gestor','Diretor'],C:['Artista','Músico','Inventor','Filósofo','Escritor','Designer'],D:['Diplomata','Administrador','Professor','Técnico','Analista','Conselheiro']};
+var descs={A:'Você é comunicativo, expressivo e cheio de energia. Faz amigos com facilidade e vive para as pessoas. Seu ponto forte é o relacionamento e o entusiasmo contagiante.',B:'Você é determinado, prático e líder nato. Toma decisões com facilidade e não desiste diante dos desafios. Seu ponto forte é a força de vontade e a capacidade de realização.',C:'Você é analítico, perfeccionista e profundo. Valoriza a qualidade, a arte e o pensamento cuidadoso. Seu ponto forte é a sensibilidade e o talento criativo.',D:'Você é calmo, equilibrado e confiável. É o tipo que todos buscam em momentos de tensão. Seu ponto forte é a estabilidade e a capacidade de conciliar.'};
+
+// ─── ESTADO ───────────────────────────────────────────────────────────────────
+var cur=0;
+var sel={A:new Set(),B:new Set(),C:new Set(),D:new Set()};
+var pagamentoVerificado=false; // Flag de segurança em memória
+
+// ─── NAVEGAÇÃO ────────────────────────────────────────────────────────────────
+function go(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function startQuiz(){ go('s-quiz'); render(); }
+
+function render(){
+  var s=secs[cur];
+  document.getElementById('prog-lbl').textContent='Seção '+(cur+1)+' de 4';
+  document.getElementById('prog-fill').style.width=(cur/4*100)+'%';
+  document.getElementById('sec-title').textContent=s.title;
+  document.getElementById('sec-desc').textContent=s.desc;
+  var el=document.getElementById('items');
+  el.innerHTML='';
+  s.items.forEach(function(item,i){
+    var d=document.createElement('div');
+    d.className='item'+(sel[s.id].has(i)?' on':'');
+    d.innerHTML='<div class="inum">'+(i+1)+'</div><div class="chk">'+(sel[s.id].has(i)?'✓':'')+'</div><div class="itxt">'+item+'</div>';
+    d.onclick=function(){toggle(s.id,i,d);};
+    el.appendChild(d);
+  });
+  updateCnt();
+  document.getElementById('btn-prev').style.visibility=cur===0?'hidden':'visible';
+  document.getElementById('btn-next').textContent=cur===3?'Ver Resultado →':'Próxima →';
+}
+
+function toggle(sid,i,d){
+  if(sel[sid].has(i)){sel[sid].delete(i);d.classList.remove('on');d.querySelector('.chk').textContent='';}
+  else{sel[sid].add(i);d.classList.add('on');d.querySelector('.chk').textContent='✓';}
+  updateCnt();
+}
+
+function updateCnt(){
+  var n=sel[secs[cur].id].size;
+  document.getElementById('cnt-badge').textContent=n+' marcado'+(n!==1?'s':'');
+  document.getElementById('prog-cnt').textContent=n+' itens marcados';
+}
+
+function next(){if(cur<3){cur++;render();}else{go('s-pix');}}
+function prev(){if(cur>0){cur--;render();}}
+
+// ─── COPIAR PIX ───────────────────────────────────────────────────────────────
+function copiarPix(){
+  var codigo='bfee0499-9fa0-4d25-9955-057a55c45b5a';
+  navigator.clipboard.writeText(codigo).then(function(){
+    var btn=document.querySelector('.btn-copy');
+    btn.textContent='✅ Copiado!';
+    setTimeout(function(){btn.textContent='📋 Copiar código Pix';},2500);
+  }).catch(function(){
+    // Fallback para navegadores sem clipboard API
+    var ta=document.createElement('textarea');
+    ta.value=codigo; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    var btn=document.querySelector('.btn-copy');
+    btn.textContent='✅ Copiado!';
+    setTimeout(function(){btn.textContent='📋 Copiar código Pix';},2500);
+  });
+}
+
+// ─── VERIFICAÇÃO DE PAGAMENTO ─────────────────────────────────────────────────
+function setStatus(tipo, msg){
+  var box=document.getElementById('status-box');
+  var spin=document.getElementById('status-spinner');
+  var txt=document.getElementById('status-text');
+  box.className='status-box '+tipo;
+  spin.style.display=tipo==='checking'?'block':'none';
+  txt.textContent=msg;
+}
+
+async function verificarPagamento(){
+  var paymentId=document.getElementById('payment-id-input').value.trim();
+  if(!paymentId){
+    setStatus('error','Por favor, insira o ID do pagamento do seu comprovante.');
+    return;
+  }
+
+  // Bloqueia o botão durante a verificação
+  var btn=document.getElementById('btn-verificar');
+  btn.disabled=true;
+  setStatus('checking','Verificando seu pagamento...');
+
+  try{
+    var response=await fetch('/api/verificar-pagamento',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({paymentId:paymentId})
+    });
+
+    var data=await response.json();
+
+    if(data.pago && data.token){
+      // Valida o token retornado pelo servidor
+      try{
+        var payload=JSON.parse(atob(data.token));
+        var agora=Date.now();
+        var duasHoras=2*60*60*1000;
+        if(payload.ok && (agora-payload.ts)<duasHoras){
+          pagamentoVerificado=true;
+          setStatus('success','Pagamento confirmado! Liberando seu resultado...');
+          setTimeout(function(){go('s-result');buildResult();},1200);
+          return;
+        }
+      }catch(e){}
+      setStatus('error','Resposta inválida do servidor. Tente novamente.');
+    }else{
+      setStatus(data.mensagem&&data.mensagem.includes('processamento')?'pending':'error',
+        data.mensagem||'Pagamento não encontrado. Verifique o ID e tente novamente.');
+    }
+  }catch(err){
+    setStatus('error','Erro de conexão. Verifique sua internet e tente novamente.');
+  }
+
+  btn.disabled=false;
+}
+
+// ─── PROTEÇÃO: bloqueia acesso direto ao resultado ────────────────────────────
+function showResult(){
+  // Só exibe resultado se pagamento foi verificado pelo servidor
+  if(!pagamentoVerificado){
+    go('s-pix');
+    return;
+  }
+  go('s-result');
+  buildResult();
+}
+
+// ─── CONSTRUÇÃO DO RESULTADO ──────────────────────────────────────────────────
+function buildResult(){
+  var tot={A:sel.A.size,B:sel.B.size,C:sel.C.size,D:sel.D.size};
+  var sum=tot.A+tot.B+tot.C+tot.D||1;
+  var pct={A:Math.round(tot.A/sum*100),B:Math.round(tot.B/sum*100),C:Math.round(tot.C/sum*100),D:Math.round(tot.D/sum*100)};
+
+  // Barras
+  var bars=document.getElementById('bars');
+  bars.innerHTML='';
+  secs.forEach(function(s){
+    bars.innerHTML+='<div class="bar-wrap"><div class="bar-row"><div class="bar-lbl"><div style="width:10px;height:10px;border-radius:50%;background:'+s.color+';flex-shrink:0"></div>'+s.label+'</div><div class="bar-pct" style="color:'+s.color+'">'+pct[s.id]+'%</div></div><div class="bar-track"><div class="bar-fill" id="bf-'+s.id+'" style="background:'+s.color+'"></div></div></div>';
+  });
+  setTimeout(function(){secs.forEach(function(s){document.getElementById('bf-'+s.id).style.width=pct[s.id]+'%';});},80);
+
+  // Radar
+  var canvas=document.getElementById('radar');
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width,H=canvas.height,cx=W/2,cy=H/2,R=Math.min(W,H)/2-36;
+  var vals=[pct.A,pct.B,pct.C,pct.D];
+  var cols=['#f472b6','#f87171','#60a5fa','#34d399'];
+  var lbls=['Sanguíneo','Colérico','Melancólico','Fleumático'];
+  ctx.clearRect(0,0,W,H);
+  for(var r=1;r<=4;r++){ctx.beginPath();for(var i=0;i<4;i++){var a=Math.PI*2*i/4-Math.PI/2,x=cx+Math.cos(a)*(R*r/4),y=cy+Math.sin(a)*(R*r/4);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.closePath();ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=1;ctx.stroke();}
+  for(var i=0;i<4;i++){var a=Math.PI*2*i/4-Math.PI/2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=1;ctx.stroke();}
+  ctx.beginPath();vals.forEach(function(v,i){var a=Math.PI*2*i/4-Math.PI/2,rr=v/100*R;i===0?ctx.moveTo(cx+Math.cos(a)*rr,cy+Math.sin(a)*rr):ctx.lineTo(cx+Math.cos(a)*rr,cy+Math.sin(a)*rr);});ctx.closePath();ctx.fillStyle='rgba(192,132,252,.15)';ctx.fill();ctx.strokeStyle='#c084fc';ctx.lineWidth=2;ctx.stroke();
+  vals.forEach(function(v,i){var a=Math.PI*2*i/4-Math.PI/2,rr=v/100*R;ctx.beginPath();ctx.arc(cx+Math.cos(a)*rr,cy+Math.sin(a)*rr,5,0,Math.PI*2);ctx.fillStyle=cols[i];ctx.fill();});
+  ctx.font='12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';lbls.forEach(function(l,i){var a=Math.PI*2*i/4-Math.PI/2;ctx.fillStyle=cols[i];ctx.fillText(l,cx+Math.cos(a)*(R+20),cy+Math.sin(a)*(R+20));});
+
+  // Dominante
+  var domId=Object.entries(tot).sort(function(a,b){return b[1]-a[1];})[0][0];
+  var domS=secs.find(function(s){return s.id===domId;});
+  document.getElementById('dom-wrap').innerHTML='<div class="dom-card" style="background:'+domS.color+'11;border-color:'+domS.color+'44;margin-bottom:20px"><div class="dom-lbl">Temperamento dominante</div><div class="dom-name" style="color:'+domS.color+'">'+domS.label+'</div><div class="dom-desc">'+descs[domId]+'</div></div>';
+
+  // Necessidades
+  var ng=document.getElementById('needs-grid');ng.innerHTML='';
+  secs.forEach(function(s){ng.innerHTML+='<div class="need-card" style="background:'+s.color+'0d;border-color:'+s.color+'33"><div class="need-name" style="color:'+s.color+'">'+s.label+'</div><div class="need-txt">'+needs[s.id]+'</div></div>';});
+  document.getElementById('needs-wrap').style.display='block';
+
+  // Profissões
+  var pt=document.getElementById('prof-tags');pt.innerHTML='';
+  profs[domId].forEach(function(p){pt.innerHTML+='<div class="tag" style="border-color:'+domS.color+'55;color:'+domS.color+'">'+p+'</div>';});
+  document.getElementById('prof-wrap').style.display='block';
+}
+</script>
+</body>
+</html>
